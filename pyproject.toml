@@ -25,6 +25,7 @@ dev = [
     "ruff>=0.6",
     "pytest>=8",
     "pytest-mock>=3.14",
+    "duckdb>=1.1",
 ]
 
 [tool.ruff]
@@ -37,4 +38,7 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["network: requires network access (deselect with -m 'not network')"]
+markers = [
+    "network: requires network access (deselect with -m 'not network')",
+    "e2e: end-to-end tests; requires network + DuckDB spatial (deselect with -m 'not e2e')",
+]
