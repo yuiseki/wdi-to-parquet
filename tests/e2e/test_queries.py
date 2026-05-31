@@ -18,13 +18,13 @@ pytestmark = pytest.mark.e2e
 
 
 class TestPopulationRanking:
-    """Q1: Which countries are most populous? (2023)"""
+    """Q1: Which countries are most populous? (2024)"""
 
     def test_top_country_is_india_or_china(self, con):
         rows = con.execute("""
             SELECT adm0.name_ja, w.value::BIGINT AS population
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2023
+            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 1
         """).fetchall()
         assert len(rows) == 1
@@ -35,7 +35,7 @@ class TestPopulationRanking:
         rows = con.execute("""
             SELECT adm0.name_ja, w.value::BIGINT AS population
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2023
+            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 10
         """).fetchall()
         assert len(rows) == 10
@@ -44,7 +44,7 @@ class TestPopulationRanking:
         rows = con.execute("""
             SELECT adm0.name_ja
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2023
+            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 15
         """).fetchall()
         names = [r[0] for r in rows]
@@ -52,7 +52,7 @@ class TestPopulationRanking:
 
 
 class TestPopulationDensity:
-    """Q2: Which countries have the highest population density? (2023)
+    """Q2: Which countries have the highest population density? (2024 pop / 2023 area)
 
     density = SP.POP.TOTL / AG.SRF.TOTL.K2
     Excludes very small countries (area < 100 km²) to avoid micro-states
@@ -61,8 +61,8 @@ class TestPopulationDensity:
 
     def test_singapore_is_densest_large_country(self, con):
         rows = con.execute("""
-            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2023),
-                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2020)
+            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2024),
+                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2023)
             SELECT adm0.name_ja, ROUND(pop.pop / area.area) AS density
             FROM pop JOIN area USING (iso3) JOIN adm0 USING (iso3)
             WHERE area.area > 100
@@ -73,8 +73,8 @@ class TestPopulationDensity:
 
     def test_density_is_non_negative(self, con):
         rows = con.execute("""
-            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2023),
-                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2020)
+            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2024),
+                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2023)
             SELECT ROUND(pop.pop / area.area) AS density
             FROM pop JOIN area USING (iso3) JOIN adm0 USING (iso3)
             WHERE area.area > 100
@@ -84,8 +84,8 @@ class TestPopulationDensity:
 
     def test_singapore_density_approx(self, con):
         rows = con.execute("""
-            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2023),
-                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2020)
+            WITH pop  AS (SELECT iso3, value AS pop  FROM wdi WHERE indicator='SP.POP.TOTL'    AND year=2024),
+                 area AS (SELECT iso3, value AS area FROM wdi WHERE indicator='AG.SRF.TOTL.K2' AND year=2023)
             SELECT ROUND(pop.pop / area.area) AS density
             FROM pop JOIN area USING (iso3) JOIN adm0 USING (iso3)
             WHERE adm0.name_ja = 'シンガポール'
@@ -95,18 +95,18 @@ class TestPopulationDensity:
 
 
 class TestPopulationGrowth:
-    """Q3: Which countries grew fastest between 2020 and 2023?
+    """Q3: Which countries grew fastest between 2020 and 2024?
 
-    growth_pct = (pop_2023 - pop_2020) / pop_2020 * 100
+    growth_pct = (pop_2024 - pop_2020) / pop_2020 * 100
     Only considers countries with population > 1M to avoid small-state noise.
     """
 
     def test_returns_rows(self, con):
         rows = con.execute("""
             WITH p2020 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2020),
-                 p2023 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2023)
-            SELECT adm0.name_ja, ROUND((p2023.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
-            FROM p2020 JOIN p2023 USING (iso3) JOIN adm0 USING (iso3)
+                 p2024 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2024)
+            SELECT adm0.name_ja, ROUND((p2024.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
+            FROM p2020 JOIN p2024 USING (iso3) JOIN adm0 USING (iso3)
             WHERE p2020.p > 1000000
             ORDER BY growth_pct DESC LIMIT 10
         """).fetchall()
@@ -115,9 +115,9 @@ class TestPopulationGrowth:
     def test_growth_leader_is_sub_saharan_or_middle_east(self, con):
         rows = con.execute("""
             WITH p2020 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2020),
-                 p2023 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2023)
-            SELECT adm0.name_ja, ROUND((p2023.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
-            FROM p2020 JOIN p2023 USING (iso3) JOIN adm0 USING (iso3)
+                 p2024 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2024)
+            SELECT adm0.name_ja, ROUND((p2024.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
+            FROM p2020 JOIN p2024 USING (iso3) JOIN adm0 USING (iso3)
             WHERE p2020.p > 1000000
             ORDER BY growth_pct DESC LIMIT 1
         """).fetchone()
@@ -127,22 +127,22 @@ class TestPopulationGrowth:
     def test_japan_has_negative_growth(self, con):
         row = con.execute("""
             WITH p2020 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2020),
-                 p2023 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2023)
-            SELECT ROUND((p2023.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
-            FROM p2020 JOIN p2023 USING (iso3) JOIN adm0 USING (iso3)
+                 p2024 AS (SELECT iso3, value AS p FROM wdi WHERE indicator='SP.POP.TOTL' AND year=2024)
+            SELECT ROUND((p2024.p - p2020.p) / p2020.p * 100, 2) AS growth_pct
+            FROM p2020 JOIN p2024 USING (iso3) JOIN adm0 USING (iso3)
             WHERE adm0.name_ja = '日本'
         """).fetchone()
         assert row[0] < 0, f"Japan population growth should be negative, got: {row[0]}"
 
 
 class TestGdpPerCapita:
-    """Q4: Which countries have the highest GDP per capita? (2023)"""
+    """Q4: Which countries have the highest GDP per capita? (2024)"""
 
     def test_top_country_is_high_income(self, con):
         rows = con.execute("""
             SELECT adm0.name_ja, ROUND(w.value)::BIGINT AS gdp_pc
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'NY.GDP.PCAP.CD' AND w.year = 2023
+            WHERE w.indicator = 'NY.GDP.PCAP.CD' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 1
         """).fetchone()
         assert rows[1] > 100000, f"Top GDP per capita unexpectedly low: {rows[1]}"
@@ -151,14 +151,14 @@ class TestGdpPerCapita:
         rows = con.execute("""
             SELECT adm0.name_ja, ROUND(w.value)::BIGINT AS gdp_pc
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'NY.GDP.PCAP.CD' AND w.year = 2023
+            WHERE w.indicator = 'NY.GDP.PCAP.CD' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 10
         """).fetchall()
         assert len(rows) == 10
 
 
 class TestTimeSeries:
-    """Q5: Multi-year data for a single country (Japan population 1990-2023)."""
+    """Q5: Multi-year data for a single country (Japan population 1990-2024)."""
 
     def test_japan_has_all_years(self, con):
         rows = con.execute("""
@@ -169,7 +169,7 @@ class TestTimeSeries:
         """).fetchall()
         years = [r[0] for r in rows]
         assert 1990 in years
-        assert 2023 in years
+        assert 2024 in years
         assert len(rows) >= 6
 
     def test_japan_peak_population_around_2010(self, con):
@@ -192,7 +192,7 @@ class TestGeometryJoin:
             SELECT adm0.name_ja, w.value::BIGINT AS population,
                    ST_AsText(adm0.geom) AS geom_wkt
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2023
+            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2024
             ORDER BY w.value DESC LIMIT 3
         """).fetchall()
         assert len(rows) == 3
@@ -204,7 +204,7 @@ class TestGeometryJoin:
         count = con.execute("""
             SELECT COUNT(DISTINCT adm0.iso3)
             FROM wdi w JOIN adm0 USING (iso3)
-            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2023
+            WHERE w.indicator = 'SP.POP.TOTL' AND w.year = 2024
         """).fetchone()[0]
         # 212 countries match between WDI and NE 50m
         assert count > 200, f"Too few matching countries: {count}"

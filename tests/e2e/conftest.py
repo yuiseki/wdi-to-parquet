@@ -27,7 +27,7 @@ E2E_INDICATORS = [
     "AG.SRF.TOTL.K2",   # surface area — Q2 (density)
     "NY.GDP.PCAP.CD",   # GDP per capita — Q4
 ]
-E2E_YEARS = [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023]
+E2E_YEARS = [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023, 2024]
 
 NE_50M = "https://z.yuiseki.net/static/natural-earth/ne_50m_admin_0_countries.parquet"
 

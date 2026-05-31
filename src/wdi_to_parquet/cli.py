@@ -25,7 +25,7 @@ DEFAULT_INDICATORS = [
     "SP.URB.TOTL.IN.ZS", # Urban population (% of total)
 ]
 
-DEFAULT_YEARS = [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023]
+DEFAULT_YEARS = [1990, 1995, 2000, 2005, 2010, 2015, 2020, 2023, 2024]
 
 
 def main(argv: list[str] | None = None) -> int:
