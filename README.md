@@ -118,6 +118,7 @@ uv run python -m pytest -m network        # only network tests (requires interne
   (Arab World, World 等) はフィルタで除外される。
 - **JOIN with geometry**: Natural Earth 50m GeoParquet と `iso3 = iso_a3` で
   JOIN して地図可視化・DuckDB Spatial クエリが可能。
+
 ## Licence
 
 The code here is MIT (`LICENSE`). The data it builds is the World Bank's, under CC BY 4.0 with its mandatory dispute terms; see `data/LICENSE`.
