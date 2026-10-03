@@ -96,3 +96,27 @@ def filter_records(src: TextIO, key: str, excluded: set[str], out: TextIO) -> tu
             out.write(raw)
             kept += 1
     return kept, dropped
+
+
+_DATED = re.compile(r"WDI_CSV_(\d{4})_(\d{2})_(\d{2})\.zip")
+
+
+def version_from_url(url: str) -> str | None:
+    """The release date the World Bank writes into a dated zip's name, as YYYY-MM-DD."""
+    m = _DATED.fullmatch(url.rsplit("/", 1)[-1])
+    return "-".join(m.groups()) if m else None
+
+
+def union_excluded(per_release: dict[str, dict[str, str]]) -> dict[str, dict[str, str]]:
+    """Series code -> {release: licence text} for every series some release restricts.
+
+    WDI's labels change between releases: SIPRI, IEA and WDPA series are
+    labelled CC BY 4.0 in some releases and with their own terms in others,
+    while the source stays the same. A series restricted in any release is
+    therefore left out of every release.
+    """
+    out: dict[str, dict[str, str]] = {}
+    for release in sorted(per_release):
+        for code, lic in per_release[release].items():
+            out.setdefault(code, {})[release] = lic
+    return out

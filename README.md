@@ -61,12 +61,51 @@ Override with `--cache-dir` and `--max-age-days`.
 | AG.SRF.TOTL.K2 | Surface area (sq. km) |
 | SP.URB.TOTL.IN.ZS | Urban population (% of total) |
 
+## The worldbank-wdi dataset
+
+Dataset: https://huggingface.co/datasets/yuiseki/worldbank-wdi
+
+Besides the CLI above, this repository builds the whole of WDI, every
+release it can get, as a dataset on the Hugging Face Hub: each World Bank
+bulk zip becomes one release, with its values in long-format Parquet, its
+metadata tables, and its CSVs rebuilt without the indicators that are not
+the World Bank's to license under CC BY. The card (`data/README.md`) says
+what is in it and why 74 indicators are left out.
+
+```
+scripts/SOURCES.json     the current bulk zip and the dated zips of the data catalogue
+scripts/01_download.py   fetches each zip, files it under data/raw/<YYYY-MM-DD>/ with MANIFEST.json
+scripts/03_export.py     zip -> csv/<release>/ (rebuilt CSVs) and parquet/<release>/
+scripts/02_verify.py     checks every release against the original zip
+scripts/publish.py       dry run; --push uploads to the Hub
+src/wdi_to_parquet/release.py   the licence rule, the record filter, the value and year parsers
+
+data/README.md, LICENSE, provenance.yaml   the card and its companions, uploaded as they are
+data/raw/, csv/, parquet/, work/           generated; raw/ holds the World Bank's zips, never uploaded
+```
+
+```sh
+uv run python scripts/01_download.py
+uv run python scripts/03_export.py
+uv run python scripts/02_verify.py
+uv run python scripts/publish.py
+```
+
+A new release: add its dated URL to `SOURCES.json` (the current zip is
+picked up by itself), declare its six subsets in `data/README.md`, and run
+the four steps. The licence rule is applied over all releases, so the
+export rewrites the older releases too; upload them all again.
+
+Run the tests with `uv run python -m pytest`. A plain `uv run pytest` can
+pick up a pytest installed outside the project, which cannot import the
+package.
+
 ## Tests
 
 ```bash
-uv run pytest                   # all tests (skips network tests)
-uv run pytest -m "not network"  # explicitly skip network
-uv run pytest -m network        # only network tests (requires internet)
+uv run python -m pytest                   # all tests
+uv run python -m pytest -m "not network"  # skip network
+uv run python -m pytest -m network        # only network tests (requires internet)
 ```
 
 ## Design notes

@@ -10,6 +10,8 @@ from wdi_to_parquet.release import (
     filter_records,
     parse_value,
     parse_year,
+    union_excluded,
+    version_from_url,
 )
 
 SIPRI = (
@@ -101,3 +103,27 @@ def test_filter_records_drops_only_the_excluded_record_and_keeps_line_breaks():
 def test_filter_records_without_the_key_column_stops():
     with pytest.raises(ValueError, match="SeriesCode"):
         run(CSV, set(), key="SeriesCode")
+
+
+@pytest.mark.parametrize(
+    "url,version",
+    [
+        ("https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_04_09.zip", "2026-04-09"),
+        ("https://databank.worldbank.org/data/download/WDI_CSV.zip", None),
+        ("https://example.org/WDI_CSV_2026_4_9.zip", None),
+    ],
+)
+def test_version_from_url_reads_the_date_in_the_file_name(url, version):
+    assert version_from_url(url) == version
+
+
+def test_union_excluded_takes_every_series_any_release_restricts():
+    per_release = {
+        "2026-07-15": {},
+        "2026-10-01": {"MS.MIL.XPND.CD": SIPRI},
+        "2024-05-30": {"MS.MIL.XPND.CD": "Use and distribution ...", "SE.LPV.PRIM": ""},
+    }
+    assert union_excluded(per_release) == {
+        "MS.MIL.XPND.CD": {"2024-05-30": "Use and distribution ...", "2026-10-01": SIPRI},
+        "SE.LPV.PRIM": {"2024-05-30": ""},
+    }

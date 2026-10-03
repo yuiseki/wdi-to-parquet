@@ -3,8 +3,8 @@
 
 For each data/raw/<version>/:
   - the zip has the sha256 in MANIFEST.json
-  - the excluded indicators are those whose licence is not allowed, read
-    again from the original WDISeries.csv
+  - the excluded indicators are those whose licence is not allowed in any
+    release, read again from every original WDISeries.csv
   - every rebuilt CSV holds exactly the original records minus those of
     excluded indicators, in the same order, and starts with the same BOM
   - data.parquet holds every non-empty value of the original WDICSV.csv
@@ -28,7 +28,7 @@ from pathlib import Path
 import duckdb
 import pyarrow.parquet as pq
 
-from wdi_to_parquet.release import excluded_series, parse_value, parse_year
+from wdi_to_parquet.release import excluded_series, parse_value, parse_year, union_excluded
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -68,16 +68,22 @@ def main() -> int:
         if not ok:
             failures.append(what)
 
-    for d in sorted(p for p in (DATA / "raw").iterdir() if (p / "MANIFEST.json").exists()):
+    dirs = sorted(p for p in (DATA / "raw").iterdir() if (p / "MANIFEST.json").exists())
+    labels = {}
+    for d in dirs:
+        with zipfile.ZipFile(d / "WDI_CSV.zip") as z, z.open("WDISeries.csv") as f:
+            labels[d.name] = excluded_series(csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig", newline="")))
+    union = union_excluded(labels)
+    for d in dirs:
         v = d.name
         m = json.loads((d / "MANIFEST.json").read_text())["WDI_CSV.zip"]
         check(sha256(d / "WDI_CSV.zip") == m["sha256"], f"{v}: zip matches MANIFEST.json")
         orig = zipfile.ZipFile(d / "WDI_CSV.zip")
         clean = zipfile.ZipFile(DATA / "csv" / v / "WDI_CSV_redistributable.zip")
-        with orig.open("WDISeries.csv") as f:
-            excl = set(excluded_series(csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig", newline=""))))
-        recorded = set(json.loads((DATA / "parquet" / v / "excluded.json").read_text())["indicators"])
-        check(excl == recorded, f"{v}: {len(excl)} excluded indicators {sorted(excl)}")
+        excl = set(union)
+        recorded = json.loads((DATA / "parquet" / v / "excluded.json").read_text())
+        check(excl == set(recorded["indicators"]) and recorded["releases_considered"] == [x.name for x in dirs],
+              f"{v}: the {len(excl)} excluded indicators are the union over {len(dirs)} releases")
 
         # rebuilt CSVs: original records minus excluded, same order, same BOM
         for name, key in KEYS.items():

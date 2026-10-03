@@ -1,0 +1,12 @@
+{
+ "current": "https://databank.worldbank.org/data/download/WDI_CSV.zip",
+ "dated": [
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2024_05_30.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2025_07_02.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2025_12_19.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_02_25.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_04_09.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_07_15.zip",
+  "https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_10_01.zip"
+ ]
+}

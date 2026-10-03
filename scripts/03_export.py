@@ -16,21 +16,25 @@ For data/raw/<version>/WDI_CSV.zip:
       footnotes and series_time also get year_int (SMALLINT) from "YR2004" (DuckDB
       matches column names without case, so year would clash with Year)
 
-An indicator is excluded when its "License Type" in WDISeries.csv is not
-CC BY 4.0 or CC BY 3.0 IGO (wdi_to_parquet.release). A value that is not a
+An indicator is excluded from every release when its "License Type" in
+WDISeries.csv is not CC BY 4.0 or CC BY 3.0 IGO in any release filed
+(wdi_to_parquet.release.union_excluded): the labels change between
+releases while the source stays the same. Filing a new release can
+therefore exclude more from the releases already published. A value that is not a
 number stops the run. data/<version>/excluded.json lists what was left out.
 
     uv run python scripts/03_export.py
 """
 
 import csv
+import io
 import json
 import shutil
 import sys
 import zipfile
 from pathlib import Path
 
-from wdi_to_parquet.release import excluded_series, filter_records
+from wdi_to_parquet.release import excluded_series, filter_records, union_excluded
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
@@ -75,7 +79,12 @@ def rebuild(src: Path, dst: Path, key: str | None, excluded: set[str]) -> dict:
     return {"kept": kept, "dropped": dropped}
 
 
-def export(version: str, con) -> None:
+def release_labels(version: str) -> dict[str, str]:
+    with zipfile.ZipFile(RAW / version / "WDI_CSV.zip") as z, z.open("WDISeries.csv") as f:
+        return excluded_series(csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig", newline="")))
+
+
+def export(version: str, excluded: dict[str, dict[str, str]], versions: list[str], con) -> None:
     zpath = RAW / version / "WDI_CSV.zip"
     work = WORK / version
     orig, clean = work / "original", work / "clean"
@@ -87,8 +96,6 @@ def export(version: str, con) -> None:
             raise SystemExit(f"{version}: members {sorted(names)} differ from {sorted(MEMBERS)}")
         z.extractall(orig)  # CRC checked on read
 
-    with open(orig / "WDISeries.csv", encoding="utf-8-sig", newline="") as f:
-        excluded = excluded_series(csv.DictReader(f))
     counts = {m: rebuild(orig / m, clean / m, k, set(excluded)) for m, k in MEMBERS.items()}
 
     out_csv = DATA / "csv" / version
@@ -130,7 +137,8 @@ def export(version: str, con) -> None:
         con.execute(f"copy (select *{extra} from {src(m)}) to '{out_pq / (table + '.parquet')}' {COPY}")
 
     (DATA / "parquet" / version / "excluded.json").write_text(json.dumps(
-        {"rule": "License Type in WDISeries.csv is not CC BY-4.0 or CC BY 3.0 IGO",
+        {"rule": "License Type in WDISeries.csv is not CC BY-4.0 or CC BY 3.0 IGO in any of the releases",
+         "releases_considered": versions,
          "indicators": excluded, "records": counts}, indent=1, ensure_ascii=False))
     n = con.sql(f"select count(*) from '{out_pq / 'data.parquet'}'").fetchone()[0]
     print(f"{version}: {n:,} values, {len(excluded)} indicators excluded", flush=True)
@@ -141,8 +149,11 @@ def main() -> int:
 
     con = duckdb.connect()
     con.execute("set memory_limit = '16GB'")
-    for d in sorted(p for p in RAW.iterdir() if (p / "MANIFEST.json").exists()):
-        export(d.name, con)
+    versions = sorted(p.name for p in RAW.iterdir() if (p / "MANIFEST.json").exists())
+    excluded = union_excluded({v: release_labels(v) for v in versions})
+    print(f"{len(excluded)} indicators excluded across {len(versions)} releases", flush=True)
+    for v in versions:
+        export(v, excluded, versions, con)
     return 0
 
 

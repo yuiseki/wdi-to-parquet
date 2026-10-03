@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Fetch the World Bank's WDI bulk zip and file it under its Last-Modified date.
+"""Fetch the World Bank's WDI bulk zips and file each under its release date.
 
-The bulk zip (databank.worldbank.org/data/download/WDI_CSV.zip) is
-overwritten in place whenever the World Bank revises WDI, so each copy is
-kept as a release named by the date of its Last-Modified header, in
-data/raw/<YYYY-MM-DD>/WDI_CSV.zip. It is accepted only if it has the
+Two kinds of source, listed in scripts/SOURCES.json:
+  - current: databank.worldbank.org/data/download/WDI_CSV.zip, overwritten in
+    place at every revision; filed under the date of its Last-Modified header
+  - dated: the copies the World Bank's data catalogue keeps as
+    WDI_CSV_YYYY_MM_DD.zip; filed under the date in the name
+The current zip and the dated one of the same day are the same release.
+Each is kept in data/raw/<YYYY-MM-DD>/WDI_CSV.zip. It is accepted only if it has the
 Content-Length the server states; MANIFEST.json beside it records the URL,
 size, sha256, Last-Modified and ETag. A release already there is not
 replaced.
@@ -22,12 +25,16 @@ import hashlib
 import json
 import shutil
 import sys
+import time
 import urllib.request
 from pathlib import Path
 
+from wdi_to_parquet.release import version_from_url
+
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw"
-URL = "https://databank.worldbank.org/data/download/WDI_CSV.zip"
+SOURCES = json.loads((Path(__file__).resolve().parent / "SOURCES.json").read_text())
+URL = SOURCES["current"]
 UA = "wdi-to-parquet/1 (+https://github.com/yuiseki/wdi-to-parquet)"
 
 
@@ -46,10 +53,11 @@ def file_release(tmp: Path, url: str, headers: dict[str, str]) -> Path:
     if got != length:
         raise SystemExit(f"{url}: got {got} bytes, the server stated {length}")
     lm = headers["last-modified"]
-    version = email.utils.parsedate_to_datetime(lm).date().isoformat()
+    version = version_from_url(url) or email.utils.parsedate_to_datetime(lm).date().isoformat()
     d = RAW / version
     if (d / "MANIFEST.json").exists():
         print(f"{version}: already filed, nothing to do")
+        tmp.unlink()
         return d
     d.mkdir(parents=True, exist_ok=True)
     dest = d / "WDI_CSV.zip"
@@ -89,12 +97,23 @@ def main() -> int:
         return 0
 
     RAW.mkdir(parents=True, exist_ok=True)
-    tmp = RAW / "WDI_CSV.zip.part"
-    req = urllib.request.Request(URL, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=600) as r, open(tmp, "wb") as f:
-        shutil.copyfileobj(r, f, 1 << 20)
-        headers = {k.lower(): v for k, v in r.headers.items()}
-    file_release(tmp, URL, headers)
+    for url in [URL, *SOURCES["dated"]]:
+        v = version_from_url(url)
+        if v is None:  # the current zip: its date is in Last-Modified
+            head = urllib.request.Request(url, method="HEAD", headers={"User-Agent": UA})
+            with urllib.request.urlopen(head, timeout=60) as r:
+                lm = r.headers["Last-Modified"]
+            v = email.utils.parsedate_to_datetime(lm).date().isoformat()
+        if (RAW / v / "MANIFEST.json").exists():
+            print(f"{v}: already filed")
+            continue
+        tmp = RAW / "WDI_CSV.zip.part"
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        with urllib.request.urlopen(req, timeout=600) as r, open(tmp, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+            headers = {k.lower(): v for k, v in r.headers.items()}
+        file_release(tmp, url, headers)
+        time.sleep(2)
     return 0
 
 

@@ -26,6 +26,7 @@ dev = [
     "pytest>=8",
     "pytest-mock>=3.14",
     "duckdb>=1.5.5",
+    "huggingface-hub>=2.1.1",
 ]
 
 [tool.ruff]
