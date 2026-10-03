@@ -1,0 +1,48 @@
+Creative Commons Attribution 4.0 International (CC BY 4.0), with the
+World Bank's mandatory dispute terms
+https://creativecommons.org/licenses/by/4.0/
+https://datacatalog.worldbank.org/public-licenses
+
+Everything under this directory comes from the World Development Indicators
+(WDI) of the World Bank, from the bulk zips at
+https://databank.worldbank.org/data/download/WDI_CSV.zip and
+https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/
+(WDI_CSV_YYYY_MM_DD.zip). raw/<release>/MANIFEST.json records each zip's
+URL, size, sha256, Last-Modified and ETag.
+
+The World Bank licenses its datasets under CC BY 4.0, and all users agree
+to mandatory terms added to it: disputes go to mediation under the WIPO
+Mediation Rules and, if not settled within 45 days, to arbitration under
+the UNCITRAL Arbitration Rules at the World Bank's headquarters in
+Washington, DC (https://datacatalog.worldbank.org/public-licenses, read on
+2026-10-02).
+
+Attribution, in the World Bank's format: The World Bank: World Development
+Indicators: <the indicator's source, given in series.parquet, column
+Source>. The World Bank does not endorse this copy.
+
+Three indicators are under CC BY 3.0 IGO, as their License Type says
+(GD_WBL_OVL_ENF, GD_WBL_OVL_LAW, GD_WBL_OVL_SFR).
+
+What was changed:
+
+  - 74 indicators were left out of every release, with all their values,
+    metadata rows and footnotes: those that any release labels with a
+    licence other than CC BY-4.0 or CC BY 3.0 IGO, or with none (SIPRI,
+    IEA, WDPA and other providers' terms, CC BY-NC 4.0, no licence given).
+    parquet/<release>/excluded.json lists them with the labels behind
+    each.
+  - csv/<release>/WDI_CSV_redistributable.zip holds the six CSVs of the
+    World Bank's zip without the records of those indicators; every record
+    kept is the World Bank's text byte for byte.
+  - parquet/<release>/data.parquet holds the values of WDICSV.csv in long
+    format (country_code, indicator_code, year, value); empty cells are not
+    rows. The other Parquet files are the other CSVs, every column as text,
+    with year_int added to footnotes and series_time.
+  - no value was changed.
+
+The World Bank's own zips are not included: they contain the indicators
+left out.
+
+The code that fetches, checks and converts is MIT, in
+https://github.com/yuiseki/wdi-to-parquet, and does not apply here.

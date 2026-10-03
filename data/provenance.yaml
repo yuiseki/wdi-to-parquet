@@ -1,0 +1,96 @@
+# Where this data comes from and what was done to it.
+
+source:
+  name: World Development Indicators (WDI)
+  publisher: The World Bank
+  current: https://databank.worldbank.org/data/download/WDI_CSV.zip
+  dated: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_YYYY_MM_DD.zip
+  licence:
+    applied: CC BY 4.0 with the World Bank's mandatory dispute terms (datacatalog.worldbank.org/public-licenses, read 2026-10-02)
+    attribution_required: true
+    share_alike: false
+    per_indicator: WDISeries.csv License Type; 74 indicators restricted in some release are left out of all
+
+releases:
+  "2026-10-01":
+    url: https://databank.worldbank.org/data/download/WDI_CSV.zip
+    bytes: 282847680
+    sha256: adb1776ac4ef13de68d1af56572f99fa083b7d08c5174f259a2ff46fa6c1e2b5
+    last_modified: "Thu, 01 Oct 2026 18:57:18 GMT"
+    values: 8790085
+    indicators: 1441
+    economies: 264
+    years: 1960 to 2025
+  "2026-07-15":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_07_15.zip
+    bytes: 282845220
+    sha256: 2ab1d0d250ebe986ac8a9f7163f6e177fbe4cfb2750f822b18578d902aeb134f
+    last_modified: "Mon, 20 Jul 2026 13:28:26 GMT"
+    values: 8790085
+    indicators: 1441
+    economies: 264
+    years: 1960 to 2025
+  "2026-04-09":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_04_09.zip
+    bytes: 280478558
+    sha256: 1c8ccf64ccb9d502668aa8aa66fdae786d0994c3278b7ed377180021a5fc3bec
+    last_modified: "Fri, 10 Apr 2026 20:10:47 GMT"
+    values: 8668470
+    indicators: 1429
+    economies: 265
+    years: 1960 to 2025
+  "2026-02-25":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2026_02_25.zip
+    bytes: 57930154
+    sha256: 23e11f447efc4cbe8343d4708a05452277fd6d621612a81dc9f3a5df1c9616e5
+    last_modified: "Wed, 01 Apr 2026 03:13:02 GMT"
+    values: 8814241
+    indicators: 1459
+    economies: 265
+    years: 1960 to 2025
+  "2025-12-19":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2025_12_19.zip
+    bytes: 283432471
+    sha256: c7eb06f5f09015493be8be179351cf9976615e963f39aa875caf21263c786f29
+    last_modified: "Fri, 19 Dec 2025 18:44:00 GMT"
+    values: 8811962
+    indicators: 1456
+    economies: 265
+    years: 1960 to 2024
+  "2025-07-02":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2025_07_02.zip
+    bytes: 282306239
+    sha256: 5ac2783a25aeb7a3250d1f34927175c4dea66098280fe6a383f4d78cb490f604
+    last_modified: "Thu, 03 Jul 2025 01:25:43 GMT"
+    values: 8721690
+    indicators: 1458
+    economies: 265
+    years: 1960 to 2024
+  "2024-05-30":
+    url: https://datacatalogfiles.worldbank.org/ddh-published/0037712/DR0095335/WDI_CSV_2024_05_30.zip
+    bytes: 267402945
+    sha256: 0ff40669d9522406313ba1c56515ec59d8bda0c7d7a86f4beae322a1c4e965ea
+    last_modified: "Thu, 29 May 2025 14:09:20 GMT"
+    values: 8221867
+    indicators: 1434
+    economies: 265
+    years: 1960 to 2023
+
+checked:
+  note: scripts/02_verify.py, before upload
+  items:
+    - zip against MANIFEST.json
+    - left-out indicators equal the union recomputed from every original WDISeries.csv
+    - rebuilt CSVs equal the original records minus the left-out ones, in order, same BOM
+    - data.parquet equals the original non-empty cells minus the left-out indicators (checksum over country, indicator, year, exact float; original read with Python's csv module)
+    - year_int equals the year read from Year
+    - no file holds a left-out indicator
+    - every Parquet opens in a plain DuckDB, no bloom filters
+
+modifications:
+  raw: not published; the World Bank's zips contain the left-out indicators
+  csv: the six CSVs without the left-out indicators' records; kept records byte for byte
+  parquet:
+    - values in long format, empty cells dropped, value as DOUBLE, a non-number stops the build
+    - metadata tables as text, year_int added to footnotes and series_time
+    - written without bloom filters

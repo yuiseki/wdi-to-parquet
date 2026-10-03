@@ -6,4 +6,7 @@ dist/
 .pytest_cache/
 .ruff_cache/
 *.parquet
-data/
+data/raw/
+data/work/
+data/csv/
+data/parquet/
